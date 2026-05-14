@@ -260,7 +260,7 @@ def read_ct_config(client: ModbusTcpClient, show_all: bool = True) -> dict[int, 
             print(f"  {ch:>2}  {v_str:<16}  {s_str}  {type_str}")
 
         if voltage is not None and voltage != 0 and slot is not None:
-            ct_map[slot] = {'voltage': v_str, 'type': type_str, 'label': f"{v_str} [{type_str}]"}
+            ct_map[ch] = {'voltage': v_str, 'type': type_str, 'label': f"{v_str} [{type_str}]"}
 
     return ct_map
 
