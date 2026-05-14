@@ -54,6 +54,11 @@ CT_VOLTAGE_BASE      = 4096   # CT associated voltage
 CT_TYPE_BASE         = 4352   # CT type identifier
 CT_SLOT_MAPPING_BASE = 4416   # CT slot mapping
 
+CHANNEL_SLOT_BASE   = 5258   # channel slot id block, device 0
+CHANNEL_SLOT_STRIDE = 32     # same stride as BUS_INFO_STRIDE
+CHANNEL_SLOT_COUNT  = 17     # A-H (offsets 0-7), FW status (offset 8), I-P (offsets 9-16)
+CHANNEL_NAMES       = list("ABCDEFGHIJKLMNOP")  # 16 channels; offset 8 is FW upgrade status
+
 CT_VOLTAGE_NAMES = {
     0:  "none",
     1:  "L1-N (Normal)",
@@ -151,8 +156,8 @@ def read_general_config(client: ModbusTcpClient) -> None:
 
 
 def list_bus_devices(client: ModbusTcpClient) -> None:
-    print(f"  {'Dev':>3}  {'DevType':<30}  {'Slots':>5}  {'Serial':>12}  {'FW':>8}")
-    print("  " + "-" * 65)
+    print(f"  {'Dev':>3}  {'DevType':<30}  {'Slots':>5}  {'Serial':>12}  {'FW':>8}  Channels")
+    print("  " + "-" * 80)
 
     for dev in range(NUM_BUS_DEVICES):
         base = BUS_INFO_BASE + dev * BUS_INFO_STRIDE
@@ -166,7 +171,18 @@ def list_bus_devices(client: ModbusTcpClient) -> None:
         fw_minor    = decode_int16(regs, 4)
         fw_major    = decode_int16(regs, 5)
         type_str    = DEVICE_TYPE_NAMES.get(device_type, f"unknown ({device_type})")
-        print(f"  {dev:>3}  {type_str:<30}  {slots:>5}  {serial:>12}  {fw_major}.{fw_minor:<6}")
+
+        channels_str = ""
+        if device_type != 0:
+            ch_base = CHANNEL_SLOT_BASE + dev * CHANNEL_SLOT_STRIDE
+            ch_regs = read_registers(client, address=ch_base, count=CHANNEL_SLOT_COUNT)
+            if ch_regs is not None:
+                ch_slots = [decode_int16(ch_regs, i) for i in range(8)] + \
+                           [decode_int16(ch_regs, i) for i in range(9, 17)]
+                parts = [f"{CHANNEL_NAMES[i]}={ch_slots[i]}" for i in range(len(CHANNEL_NAMES)) if ch_slots[i] != 0]
+                channels_str = ", ".join(parts) if parts else "(none)"
+
+        print(f"  {dev:>3}  {type_str:<30}  {slots:>5}  {serial:>12}  {fw_major}.{fw_minor:<6}  {channels_str}")
 
 
 def read_power(client: ModbusTcpClient, ct_map: dict[int, dict] | None = None) -> None:
