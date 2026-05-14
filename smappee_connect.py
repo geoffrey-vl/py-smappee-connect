@@ -39,6 +39,12 @@ GENERAL_CONFIG_MODBUS_ADDRESS   = 4481
 
 DEVICE_INFO_BASE = 5664  # device type, reserved, serial, FW minor, FW major
 
+POWER_NUM_CHANNELS         = 28
+POWER_ACTIVE_BASE          = 256   # total + fundamental active power, 1s avg
+POWER_REACTIVE_BASE        = 384   # total + fundamental reactive power, 1s avg
+POWER_APPARENT_BASE        = 768   # total + fundamental apparent power, 1s avg
+POWER_INSTANTANEOUS_BASE   = 896   # instantaneous active power, 100 ms avg
+
 
 def read_registers(client: ModbusTcpClient, address: int, count: int) -> list[int] | None:
     try:
@@ -100,6 +106,35 @@ def list_bus_devices(client: ModbusTcpClient) -> None:
         print(f"  {dev:>3}  {device_type:>7}  {slots:>5}  {serial:>12}  {fw_major}.{fw_minor:<6}")
 
 
+def read_power(client: ModbusTcpClient) -> None:
+    # Read all four sections in bulk (28 channels each)
+    regs_active  = read_registers(client, address=POWER_ACTIVE_BASE,        count=POWER_NUM_CHANNELS * 4)
+    regs_reactive = read_registers(client, address=POWER_REACTIVE_BASE,     count=POWER_NUM_CHANNELS * 4)
+    regs_apparent = read_registers(client, address=POWER_APPARENT_BASE,     count=POWER_NUM_CHANNELS * 4)
+    regs_instant  = read_registers(client, address=POWER_INSTANTANEOUS_BASE, count=POWER_NUM_CHANNELS * 2)
+
+    header = (f"  {'Ch':>2}  {'Act.Tot':>10}  {'Act.Fund':>10}"
+              f"  {'React.Tot':>10}  {'React.Fund':>10}"
+              f"  {'App.Tot':>10}  {'App.Fund':>10}"
+              f"  {'Instant':>10}")
+    print(header)
+    print("  " + "-" * (len(header) - 2))
+
+    for ch in range(POWER_NUM_CHANNELS):
+        act_tot  = decode_float(regs_active,   ch * 4)     if regs_active   else float('nan')
+        act_fund = decode_float(regs_active,   ch * 4 + 2) if regs_active   else float('nan')
+        rea_tot  = decode_float(regs_reactive, ch * 4)     if regs_reactive else float('nan')
+        rea_fund = decode_float(regs_reactive, ch * 4 + 2) if regs_reactive else float('nan')
+        app_tot  = decode_float(regs_apparent, ch * 4)     if regs_apparent else float('nan')
+        app_fund = decode_float(regs_apparent, ch * 4 + 2) if regs_apparent else float('nan')
+        instant  = decode_float(regs_instant,  ch * 2)     if regs_instant  else float('nan')
+
+        print(f"  {ch:>2}  {act_tot:>10.2f}  {act_fund:>10.2f}"
+              f"  {rea_tot:>10.2f}  {rea_fund:>10.2f}"
+              f"  {app_tot:>10.2f}  {app_fund:>10.2f}"
+              f"  {instant:>10.2f}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Smappee Connect Tool")
     parser.add_argument("hostname", help="IP address or hostname of the Smappee device")
@@ -121,6 +156,9 @@ def main():
         print()
         print("=== Bus Devices ===")
         list_bus_devices(client)
+        print()
+        print("=== Power (W / var / VA) ===")
+        read_power(client)
     finally:
         client.close()
         print("\nConnection closed.")
