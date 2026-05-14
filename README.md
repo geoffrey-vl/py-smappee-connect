@@ -59,3 +59,7 @@ Nmap done: 1 IP address (1 host up) scanned in 29.26 seconds
 python -m venv .venvhome
 source .venvhome/bin/activate
 pip install -r requirements.txt
+
+## References
+
+* [Smappee Modbus registers Excel sheet](doc/Smappee-Infinity-Modbus-energy-meter-registers.xlsx)
