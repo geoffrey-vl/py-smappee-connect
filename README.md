@@ -56,8 +56,8 @@ Nmap done: 1 IP address (1 host up) scanned in 29.26 seconds
 
 ### Venv
 
-python -m venv .venvhome
-source .venvhome/bin/activate
+python -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
 ## References
