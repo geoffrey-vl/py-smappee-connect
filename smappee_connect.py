@@ -34,6 +34,11 @@ BUS_INFO_BASE   = 5248   # base address of device 0 bus info block
 BUS_INFO_STRIDE = 32     # registers per device block
 NUM_BUS_DEVICES = 10
 
+GENERAL_CONFIG_PHANTOM_VOLTAGES = 4480
+GENERAL_CONFIG_MODBUS_ADDRESS   = 4481
+
+DEVICE_INFO_BASE = 5664  # device type, reserved, serial, FW minor, FW major
+
 
 def read_registers(client: ModbusTcpClient, address: int, count: int) -> list[int] | None:
     try:
@@ -45,6 +50,36 @@ def read_registers(client: ModbusTcpClient, address: int, count: int) -> list[in
         print(f"  [error] addr={address}: {result}")
         return None
     return result.registers
+
+
+PHANTOM_VOLTAGE_MODES = {
+    0: "disabled",
+    1: "3-phase 120°",
+    2: "2-phase 180°",
+    3: "virtual star point",
+}
+
+
+def read_general_config(client: ModbusTcpClient) -> None:
+    # --- phantom voltages + modbus address (4480–4481) ---
+    regs = read_registers(client, address=GENERAL_CONFIG_PHANTOM_VOLTAGES, count=2)
+    if regs is not None:
+        phantom = decode_int16(regs, 0)
+        modbus_addr = decode_int16(regs, 1)
+        phantom_label = PHANTOM_VOLTAGE_MODES.get(phantom, f"unknown ({phantom})")
+        print(f"  Phantom voltages : {phantom_label}")
+        print(f"  Modbus address   : {modbus_addr}")
+
+    # --- device info block (5664–5669) ---
+    regs = read_registers(client, address=DEVICE_INFO_BASE, count=6)
+    if regs is not None:
+        device_type = decode_int16(regs, 0)
+        serial      = decode_int32(regs, 2)
+        fw_minor    = decode_int16(regs, 4)
+        fw_major    = decode_int16(regs, 5)
+        print(f"  Device type      : {device_type}")
+        print(f"  Serial number    : {serial}")
+        print(f"  Firmware version : {fw_major}.{fw_minor}")
 
 
 def list_bus_devices(client: ModbusTcpClient) -> None:
@@ -81,6 +116,10 @@ def main():
     print("Connected.\n")
 
     try:
+        print("=== General Config ===")
+        read_general_config(client)
+        print()
+        print("=== Bus Devices ===")
         list_bus_devices(client)
     finally:
         client.close()
