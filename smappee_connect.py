@@ -85,6 +85,13 @@ CT_TYPE_NAMES = {
     15: "Rogowski 200A",
 }
 
+DEVICE_TYPE_NAMES = {
+    5130: "Smappee Connect",
+    5400: "Smappee Power Box",
+    5520: "Smappee CT Hub",
+    5600: "Smappee Solid Core 3-Phase CT",
+}
+
 
 def read_registers(client: ModbusTcpClient, address: int, count: int) -> list[int] | None:
     try:
@@ -123,14 +130,14 @@ def read_general_config(client: ModbusTcpClient) -> None:
         serial      = decode_int32(regs, 2)
         fw_minor    = decode_int16(regs, 4)
         fw_major    = decode_int16(regs, 5)
-        print(f"  Device type      : {device_type}")
+        print(f"  Device type      : {DEVICE_TYPE_NAMES.get(device_type, f'unknown ({device_type})')}")
         print(f"  Serial number    : {serial}")
         print(f"  Firmware version : {fw_major}.{fw_minor}")
 
 
 def list_bus_devices(client: ModbusTcpClient) -> None:
-    print(f"  {'Dev':>3}  {'DevType':>7}  {'Slots':>5}  {'Serial':>12}  {'FW':>8}")
-    print("  " + "-" * 45)
+    print(f"  {'Dev':>3}  {'DevType':<30}  {'Slots':>5}  {'Serial':>12}  {'FW':>8}")
+    print("  " + "-" * 65)
 
     for dev in range(NUM_BUS_DEVICES):
         base = BUS_INFO_BASE + dev * BUS_INFO_STRIDE
@@ -143,7 +150,8 @@ def list_bus_devices(client: ModbusTcpClient) -> None:
         serial      = decode_int32(regs, 2)
         fw_minor    = decode_int16(regs, 4)
         fw_major    = decode_int16(regs, 5)
-        print(f"  {dev:>3}  {device_type:>7}  {slots:>5}  {serial:>12}  {fw_major}.{fw_minor:<6}")
+        type_str    = DEVICE_TYPE_NAMES.get(device_type, f"unknown ({device_type})")
+        print(f"  {dev:>3}  {type_str:<30}  {slots:>5}  {serial:>12}  {fw_major}.{fw_minor:<6}")
 
 
 def read_power(client: ModbusTcpClient, ct_map: dict[int, dict] | None = None) -> None:
