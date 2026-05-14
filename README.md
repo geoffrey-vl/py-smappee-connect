@@ -76,4 +76,4 @@ pip install -r requirements.txt
 
 ## References
 
-* [Smappee Modbus registers Excel sheet](doc/Smappee-Infinity-Modbus-energy-meter-registers.xlsx)
+* [Smappee Modbus registers Excel sheet](doc/Smappee-Infinity-Modbus-energy-meter-registers-2026.xlsx)
