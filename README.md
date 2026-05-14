@@ -52,13 +52,27 @@ MAC Address: 1C:9D:C2:D8:E2:4B (Espressif)
 Nmap done: 1 IP address (1 host up) scanned in 29.26 seconds
 ```
 
+## Usage
+
+```
+python smappee_connect.py <ip>
+```
+
+Example:
+
+```
+python smappee_connect.py 192.168.0.253
+```
+
 ## Development
 
 ### Venv
 
+```
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+```
 
 ## References
 
