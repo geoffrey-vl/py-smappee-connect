@@ -155,7 +155,7 @@ def read_power(client: ModbusTcpClient, ct_map: dict[int, dict] | None = None) -
 
     if ct_map is not None:
         channels = sorted(ch for ch in ct_map if ch < POWER_NUM_CHANNELS)
-        name_w   = max((len(ct_map[ch]['voltage']) for ch in channels), default=10)
+        name_w   = max((len(ct_map[ch]['label']) for ch in channels), default=10)
         header   = (f"  {'Name':<{name_w}}  {'Act.Tot':>10}  {'Act.Fund':>10}"
                     f"  {'React.Tot':>10}  {'React.Fund':>10}"
                     f"  {'App.Tot':>10}  {'App.Fund':>10}"
@@ -163,7 +163,7 @@ def read_power(client: ModbusTcpClient, ct_map: dict[int, dict] | None = None) -
         print(header)
         print("  " + "-" * (len(header) - 2))
         for ch in channels:
-            name     = ct_map[ch]['voltage']
+            name     = ct_map[ch]['label']
             act_tot  = decode_float(regs_active,   ch * 4)     if regs_active   else float('nan')
             act_fund = decode_float(regs_active,   ch * 4 + 2) if regs_active   else float('nan')
             rea_tot  = decode_float(regs_reactive, ch * 4)     if regs_reactive else float('nan')
@@ -221,7 +221,7 @@ def read_ct_config(client: ModbusTcpClient, show_all: bool = True) -> dict[int, 
             print(f"  {ch:>2}  {v_str:<16}  {s_str}  {type_str}")
 
         if voltage is not None and voltage != 0 and slot is not None:
-            ct_map[slot] = {'voltage': v_str, 'type': type_str}
+            ct_map[slot] = {'voltage': v_str, 'type': type_str, 'label': f"{v_str} [{type_str}]"}
 
     return ct_map
 
