@@ -146,42 +146,67 @@ def list_bus_devices(client: ModbusTcpClient) -> None:
         print(f"  {dev:>3}  {device_type:>7}  {slots:>5}  {serial:>12}  {fw_major}.{fw_minor:<6}")
 
 
-def read_power(client: ModbusTcpClient) -> None:
+def read_power(client: ModbusTcpClient, ct_map: dict[int, dict] | None = None) -> None:
     # Read all four sections in bulk (28 channels each)
-    regs_active  = read_registers(client, address=POWER_ACTIVE_BASE,        count=POWER_NUM_CHANNELS * 4)
-    regs_reactive = read_registers(client, address=POWER_REACTIVE_BASE,     count=POWER_NUM_CHANNELS * 4)
-    regs_apparent = read_registers(client, address=POWER_APPARENT_BASE,     count=POWER_NUM_CHANNELS * 4)
-    regs_instant  = read_registers(client, address=POWER_INSTANTANEOUS_BASE, count=POWER_NUM_CHANNELS * 2)
+    regs_active   = read_registers(client, address=POWER_ACTIVE_BASE,         count=POWER_NUM_CHANNELS * 4)
+    regs_reactive = read_registers(client, address=POWER_REACTIVE_BASE,       count=POWER_NUM_CHANNELS * 4)
+    regs_apparent = read_registers(client, address=POWER_APPARENT_BASE,       count=POWER_NUM_CHANNELS * 4)
+    regs_instant  = read_registers(client, address=POWER_INSTANTANEOUS_BASE,  count=POWER_NUM_CHANNELS * 2)
 
-    header = (f"  {'Ch':>2}  {'Act.Tot':>10}  {'Act.Fund':>10}"
-              f"  {'React.Tot':>10}  {'React.Fund':>10}"
-              f"  {'App.Tot':>10}  {'App.Fund':>10}"
-              f"  {'Instant':>10}")
-    print(header)
-    print("  " + "-" * (len(header) - 2))
+    if ct_map is not None:
+        channels = sorted(ch for ch in ct_map if ch < POWER_NUM_CHANNELS)
+        name_w   = max((len(ct_map[ch]['voltage']) for ch in channels), default=10)
+        header   = (f"  {'Name':<{name_w}}  {'Act.Tot':>10}  {'Act.Fund':>10}"
+                    f"  {'React.Tot':>10}  {'React.Fund':>10}"
+                    f"  {'App.Tot':>10}  {'App.Fund':>10}"
+                    f"  {'Instant':>10}")
+        print(header)
+        print("  " + "-" * (len(header) - 2))
+        for ch in channels:
+            name     = ct_map[ch]['voltage']
+            act_tot  = decode_float(regs_active,   ch * 4)     if regs_active   else float('nan')
+            act_fund = decode_float(regs_active,   ch * 4 + 2) if regs_active   else float('nan')
+            rea_tot  = decode_float(regs_reactive, ch * 4)     if regs_reactive else float('nan')
+            rea_fund = decode_float(regs_reactive, ch * 4 + 2) if regs_reactive else float('nan')
+            app_tot  = decode_float(regs_apparent, ch * 4)     if regs_apparent else float('nan')
+            app_fund = decode_float(regs_apparent, ch * 4 + 2) if regs_apparent else float('nan')
+            instant  = decode_float(regs_instant,  ch * 2)     if regs_instant  else float('nan')
+            print(f"  {name:<{name_w}}  {act_tot:>10.2f}  {act_fund:>10.2f}"
+                  f"  {rea_tot:>10.2f}  {rea_fund:>10.2f}"
+                  f"  {app_tot:>10.2f}  {app_fund:>10.2f}"
+                  f"  {instant:>10.2f}")
+    else:
+        header = (f"  {'Ch':>2}  {'Act.Tot':>10}  {'Act.Fund':>10}"
+                  f"  {'React.Tot':>10}  {'React.Fund':>10}"
+                  f"  {'App.Tot':>10}  {'App.Fund':>10}"
+                  f"  {'Instant':>10}")
+        print(header)
+        print("  " + "-" * (len(header) - 2))
+        for ch in range(POWER_NUM_CHANNELS):
+            act_tot  = decode_float(regs_active,   ch * 4)     if regs_active   else float('nan')
+            act_fund = decode_float(regs_active,   ch * 4 + 2) if regs_active   else float('nan')
+            rea_tot  = decode_float(regs_reactive, ch * 4)     if regs_reactive else float('nan')
+            rea_fund = decode_float(regs_reactive, ch * 4 + 2) if regs_reactive else float('nan')
+            app_tot  = decode_float(regs_apparent, ch * 4)     if regs_apparent else float('nan')
+            app_fund = decode_float(regs_apparent, ch * 4 + 2) if regs_apparent else float('nan')
+            instant  = decode_float(regs_instant,  ch * 2)     if regs_instant  else float('nan')
+            print(f"  {ch:>2}  {act_tot:>10.2f}  {act_fund:>10.2f}"
+                  f"  {rea_tot:>10.2f}  {rea_fund:>10.2f}"
+                  f"  {app_tot:>10.2f}  {app_fund:>10.2f}"
+                  f"  {instant:>10.2f}")
 
-    for ch in range(POWER_NUM_CHANNELS):
-        act_tot  = decode_float(regs_active,   ch * 4)     if regs_active   else float('nan')
-        act_fund = decode_float(regs_active,   ch * 4 + 2) if regs_active   else float('nan')
-        rea_tot  = decode_float(regs_reactive, ch * 4)     if regs_reactive else float('nan')
-        rea_fund = decode_float(regs_reactive, ch * 4 + 2) if regs_reactive else float('nan')
-        app_tot  = decode_float(regs_apparent, ch * 4)     if regs_apparent else float('nan')
-        app_fund = decode_float(regs_apparent, ch * 4 + 2) if regs_apparent else float('nan')
-        instant  = decode_float(regs_instant,  ch * 2)     if regs_instant  else float('nan')
 
-        print(f"  {ch:>2}  {act_tot:>10.2f}  {act_fund:>10.2f}"
-              f"  {rea_tot:>10.2f}  {rea_fund:>10.2f}"
-              f"  {app_tot:>10.2f}  {app_fund:>10.2f}"
-              f"  {instant:>10.2f}")
-
-
-def read_ct_config(client: ModbusTcpClient) -> None:
+def read_ct_config(client: ModbusTcpClient, show_all: bool = True) -> dict[int, dict]:
+    """Read CT configuration. Returns a mapping of slot → {voltage, type} for configured CTs."""
     regs_voltage = read_registers(client, address=CT_VOLTAGE_BASE,      count=CT_NUM_CHANNELS)
     regs_type    = read_registers(client, address=CT_TYPE_BASE,         count=CT_NUM_CHANNELS)
     regs_slot    = read_registers(client, address=CT_SLOT_MAPPING_BASE, count=CT_NUM_CHANNELS)
 
-    print(f"  {'CT':>2}  {'Voltage':<16}  {'Slot':>6}  Type")
-    print("  " + "-" * 55)
+    if show_all:
+        print(f"  {'CT':>2}  {'Voltage':<16}  {'Slot':>6}  Type")
+        print("  " + "-" * 55)
+
+    ct_map: dict[int, dict] = {}
 
     for ch in range(CT_NUM_CHANNELS):
         voltage = decode_int16(regs_voltage, ch) if regs_voltage else None
@@ -191,12 +216,21 @@ def read_ct_config(client: ModbusTcpClient) -> None:
         v_str    = CT_VOLTAGE_NAMES.get(voltage, f"unknown ({voltage})") if voltage is not None else "(err)"
         s_str    = f"{slot:>6}"    if slot    is not None else " (err)"
         type_str = CT_TYPE_NAMES.get(ct_type, f"unknown ({ct_type})") if ct_type is not None else "(err)"
-        print(f"  {ch:>2}  {v_str:<16}  {s_str}  {type_str}")
+
+        if show_all:
+            print(f"  {ch:>2}  {v_str:<16}  {s_str}  {type_str}")
+
+        if voltage is not None and voltage != 0 and slot is not None:
+            ct_map[slot] = {'voltage': v_str, 'type': type_str}
+
+    return ct_map
 
 
 def main():
     parser = argparse.ArgumentParser(description="Smappee Connect Tool")
     parser.add_argument("hostname", help="IP address or hostname of the Smappee device")
+    parser.add_argument("-a", "--all", action="store_true",
+                        help="Show all channels and sections (general config, bus devices, full CT table)")
     args = parser.parse_args()
 
     host = args.hostname
@@ -210,17 +244,22 @@ def main():
     print("Connected.\n")
 
     try:
-        print("=== General Config ===")
-        read_general_config(client)
-        print()
-        print("=== Bus Devices ===")
-        list_bus_devices(client)
-        print()
-        print("=== Power (W / var / VA) ===")
-        read_power(client)
-        print()
-        print("=== CT Configuration ===")
-        read_ct_config(client)
+        if args.all:
+            print("=== General Config ===")
+            read_general_config(client)
+            print()
+            print("=== Bus Devices ===")
+            list_bus_devices(client)
+            print()
+            print("=== CT Configuration ===")
+            read_ct_config(client, show_all=True)
+            print()
+            print("=== Power (W / var / VA) ===")
+            read_power(client)
+        else:
+            ct_map = read_ct_config(client, show_all=False)
+            print("=== Power (W / var / VA) ===")
+            read_power(client, ct_map=ct_map)
     finally:
         client.close()
         print("\nConnection closed.")
