@@ -45,6 +45,11 @@ POWER_REACTIVE_BASE        = 384   # total + fundamental reactive power, 1s avg
 POWER_APPARENT_BASE        = 768   # total + fundamental apparent power, 1s avg
 POWER_INSTANTANEOUS_BASE   = 896   # instantaneous active power, 100 ms avg
 
+CT_NUM_CHANNELS      = 28
+CT_VOLTAGE_BASE      = 4096   # CT associated voltage
+CT_TYPE_BASE         = 4352   # CT type identifier
+CT_SLOT_MAPPING_BASE = 4416   # CT slot mapping
+
 
 def read_registers(client: ModbusTcpClient, address: int, count: int) -> list[int] | None:
     try:
@@ -135,6 +140,25 @@ def read_power(client: ModbusTcpClient) -> None:
               f"  {instant:>10.2f}")
 
 
+def read_ct_config(client: ModbusTcpClient) -> None:
+    regs_voltage = read_registers(client, address=CT_VOLTAGE_BASE,      count=CT_NUM_CHANNELS)
+    regs_type    = read_registers(client, address=CT_TYPE_BASE,         count=CT_NUM_CHANNELS)
+    regs_slot    = read_registers(client, address=CT_SLOT_MAPPING_BASE, count=CT_NUM_CHANNELS)
+
+    print(f"  {'CT':>2}  {'Voltage':>7}  {'Type':>6}  {'Slot':>6}")
+    print("  " + "-" * 28)
+
+    for ch in range(CT_NUM_CHANNELS):
+        voltage = decode_int16(regs_voltage, ch) if regs_voltage else None
+        ct_type = decode_int16(regs_type,    ch) if regs_type    else None
+        slot    = decode_int16(regs_slot,    ch) if regs_slot    else None
+
+        v_str = f"{voltage:>7}" if voltage is not None else "  (err)"
+        t_str = f"{ct_type:>6}" if ct_type is not None else " (err)"
+        s_str = f"{slot:>6}"    if slot    is not None else " (err)"
+        print(f"  {ch:>2}  {v_str}  {t_str}  {s_str}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="Smappee Connect Tool")
     parser.add_argument("hostname", help="IP address or hostname of the Smappee device")
@@ -159,6 +183,9 @@ def main():
         print()
         print("=== Power (W / var / VA) ===")
         read_power(client)
+        print()
+        print("=== CT Configuration ===")
+        read_ct_config(client)
     finally:
         client.close()
         print("\nConnection closed.")
