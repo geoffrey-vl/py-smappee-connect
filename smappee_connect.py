@@ -182,7 +182,7 @@ def list_bus_devices(client: ModbusTcpClient) -> None:
                 parts = [f"{CHANNEL_NAMES[i]}={ch_slots[i]}" for i in range(len(CHANNEL_NAMES)) if ch_slots[i] != 0]
                 channels_str = ", ".join(parts) if parts else "(none)"
 
-        print(f"  {dev:>3}  {type_str:<30}  {slots:>5}  {serial:>12}  {fw_major}.{fw_minor:<6}  {channels_str}")
+        print(f"  {dev:>3}  {type_str:<30}  {slots:>5}  {serial:>12}  {f'{fw_major}.{fw_minor}':>8}  {channels_str}")
 
 
 def read_power(client: ModbusTcpClient, ct_map: dict[int, dict] | None = None) -> None:
