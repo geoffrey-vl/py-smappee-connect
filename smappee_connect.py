@@ -50,6 +50,21 @@ CT_VOLTAGE_BASE      = 4096   # CT associated voltage
 CT_TYPE_BASE         = 4352   # CT type identifier
 CT_SLOT_MAPPING_BASE = 4416   # CT slot mapping
 
+CT_VOLTAGE_NAMES = {
+    1:  "L1-N (Normal)",
+    16: "L1-N (Reverse)",
+    2:  "L2-N (Normal)",
+    32: "L2-N (Reverse)",
+    4:  "L3-N (Normal)",
+    64: "L3-N (Reverse)",
+    33: "L1-L2 (Normal)",
+    18: "L1-L2 (Reverse)",
+    66: "L2-L3 (Normal)",
+    36: "L2-L3 (Reverse)",
+    65: "L1-L3 (Normal)",
+    20: "L1-L3 (Reverse)",
+}
+
 CT_TYPE_NAMES = {
     0:  "SCT01-50/100/200A",
     1:  "SCT01-400/800A",
@@ -164,18 +179,18 @@ def read_ct_config(client: ModbusTcpClient) -> None:
     regs_type    = read_registers(client, address=CT_TYPE_BASE,         count=CT_NUM_CHANNELS)
     regs_slot    = read_registers(client, address=CT_SLOT_MAPPING_BASE, count=CT_NUM_CHANNELS)
 
-    print(f"  {'CT':>2}  {'Voltage':>7}  {'Slot':>6}  Type")
-    print("  " + "-" * 50)
+    print(f"  {'CT':>2}  {'Voltage':<16}  {'Slot':>6}  Type")
+    print("  " + "-" * 55)
 
     for ch in range(CT_NUM_CHANNELS):
         voltage = decode_int16(regs_voltage, ch) if regs_voltage else None
         ct_type = decode_int16(regs_type,    ch) if regs_type    else None
         slot    = decode_int16(regs_slot,    ch) if regs_slot    else None
 
-        v_str    = f"{voltage:>7}" if voltage is not None else "  (err)"
+        v_str    = CT_VOLTAGE_NAMES.get(voltage, f"unknown ({voltage})") if voltage is not None else "(err)"
         s_str    = f"{slot:>6}"    if slot    is not None else " (err)"
         type_str = CT_TYPE_NAMES.get(ct_type, f"unknown ({ct_type})") if ct_type is not None else "(err)"
-        print(f"  {ch:>2}  {v_str}  {s_str}  {type_str}")
+        print(f"  {ch:>2}  {v_str:<16}  {s_str}  {type_str}")
 
 
 def main():
