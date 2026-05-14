@@ -51,6 +51,7 @@ CT_TYPE_BASE         = 4352   # CT type identifier
 CT_SLOT_MAPPING_BASE = 4416   # CT slot mapping
 
 CT_VOLTAGE_NAMES = {
+    0:  "none",
     1:  "L1-N (Normal)",
     16: "L1-N (Reverse)",
     2:  "L2-N (Normal)",
