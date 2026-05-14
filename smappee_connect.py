@@ -37,6 +37,10 @@ NUM_BUS_DEVICES = 10
 GENERAL_CONFIG_PHANTOM_VOLTAGES = 4480
 GENERAL_CONFIG_MODBUS_ADDRESS   = 4481
 
+FREQUENCY_NOMINAL_BASE = 1014   # Float, Hz — nominal frequency (50 or 60 Hz)
+FREQUENCY_ACTUAL_BASE  = 1016   # Float, Hz — actual frequency, 200 ms avg
+FREQUENCY_RUNTIME_BASE = 1018   # Int32, seconds — run time; changes each new 1 s data
+
 DEVICE_INFO_BASE = 5664  # device type, reserved, serial, FW minor, FW major
 
 POWER_NUM_CHANNELS         = 28
@@ -111,6 +115,17 @@ PHANTOM_VOLTAGE_MODES = {
     2: "2-phase 180°",
     3: "virtual star point",
 }
+
+
+def read_frequency(client: ModbusTcpClient) -> None:
+    regs = read_registers(client, address=FREQUENCY_NOMINAL_BASE, count=6)
+    if regs is not None:
+        nominal = decode_float(regs, 0)
+        actual  = decode_float(regs, 2)
+        runtime = decode_int32(regs, 4)
+        print(f"  Nominal frequency : {nominal:.1f} Hz")
+        print(f"  Actual frequency  : {actual:.3f} Hz")
+        print(f"  Run time          : {runtime} s")
 
 
 def read_general_config(client: ModbusTcpClient) -> None:
@@ -255,6 +270,9 @@ def main():
         if args.all:
             print("=== General Config ===")
             read_general_config(client)
+            print()
+            print("=== Frequency ===")
+            read_frequency(client)
             print()
             print("=== Bus Devices ===")
             list_bus_devices(client)
