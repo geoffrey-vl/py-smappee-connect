@@ -1,4 +1,7 @@
-# Python Smappee Connect
+# Python Smappee Connect Modbus client
+
+This repository provides software that is able to connect to a **Smappee Connect** device over **Modbus TCP**.
+The software is able to read out power, configuration and other metrics, however it does not provide ways to start, stop or pauze charging sessions.
 
 ## Smappee Connect device
 
