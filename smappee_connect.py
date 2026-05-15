@@ -15,6 +15,7 @@ Bus Info register map (from XLS):
 """
 
 import argparse
+import time
 
 from pymodbus import ExceptionResponse
 from pymodbus.client import ModbusTcpClient
@@ -270,6 +271,8 @@ def main():
     parser.add_argument("hostname", help="IP address or hostname of the Smappee device")
     parser.add_argument("-a", "--all", action="store_true",
                         help="Show all channels and sections (general config, bus devices, full CT table)")
+    parser.add_argument("-f", "--follow", action="store_true",
+                        help="Continuously refresh power readings every 3 seconds")
     args = parser.parse_args()
 
     host = args.hostname
@@ -298,10 +301,22 @@ def main():
             print()
             print("=== Power (W / var / VA) ===")
             read_power(client)
+        elif args.follow:
+            ct_map = read_ct_config(client, show_all=False)
+            first = True
+            while True:
+                if not first:
+                    print("\033[2J\033[H", end="")  # clear screen, cursor home
+                first = False
+                print(f"=== Power (W / var / VA) ===  [refreshing every 3s, Ctrl-C to stop]")
+                read_power(client, ct_map=ct_map)
+                time.sleep(3)
         else:
             ct_map = read_ct_config(client, show_all=False)
             print("=== Power (W / var / VA) ===")
             read_power(client, ct_map=ct_map)
+    except KeyboardInterrupt:
+        pass
     finally:
         client.close()
         print("\nConnection closed.")
